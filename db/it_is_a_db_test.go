@@ -122,6 +122,141 @@ func itIsADB() {
 		Ω(string(log)).Should(Equal("some log"))
 	})
 
+	Context("getting the latest inputs", func() {
+		for numLoop := 5; numLoop <= 10; numLoop++ {
+			num := numLoop
+
+			Context(fmt.Sprintf("with %d resources and %d jobs", num, num), func() {
+				var rootJob config.Job
+
+				BeforeEach(func() {
+					var err error
+
+					err = db.RegisterJob("root")
+					Ω(err).ShouldNot(HaveOccurred())
+
+					rootJob = config.Job{}
+
+					for n := 1; n <= num; n++ {
+						jname := fmt.Sprintf("j%d", n)
+						rname := fmt.Sprintf("r%d", n)
+
+						err = db.RegisterJob(jname)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						err = db.RegisterResource(rname)
+						Ω(err).ShouldNot(HaveOccurred())
+
+						rootJob.Inputs = append(rootJob.Inputs, config.Input{
+							Resource: rname, Passed: []string{jname},
+						})
+					}
+				})
+
+				FMeasure("getting the latest inputs for a build", func(b Benchmarker) {
+					var i int
+
+					b.Time("0 builds", func() {
+						_, err := db.GetLatestInputVersions(rootJob.Inputs)
+						Ω(err).Should(HaveOccurred())
+					})
+
+					for ; i < 1; i++ {
+						for n := 1; n <= num; n++ {
+							jname := fmt.Sprintf("j%d", n)
+							rname := fmt.Sprintf("r%d", n)
+
+							jb, err := db.CreateBuild(jname)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							err = db.SaveBuildOutput(jname, jb.ID, Builds.VersionedResource{
+								Name:    rname,
+								Type:    "foo",
+								Source:  config.Source{"source": "1"},
+								Version: Builds.Version{"version": i},
+							})
+							Ω(err).ShouldNot(HaveOccurred())
+						}
+					}
+
+					b.Time("1 builds", func() {
+						_, err := db.GetLatestInputVersions(rootJob.Inputs)
+						Ω(err).ShouldNot(HaveOccurred())
+					})
+
+					for ; i < 10; i++ {
+						for n := 1; n <= num; n++ {
+							jname := fmt.Sprintf("j%d", n)
+							rname := fmt.Sprintf("r%d", n)
+
+							jb, err := db.CreateBuild(jname)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							err = db.SaveBuildOutput(jname, jb.ID, Builds.VersionedResource{
+								Name:    rname,
+								Type:    "foo",
+								Source:  config.Source{"source": "1"},
+								Version: Builds.Version{"version": i},
+							})
+							Ω(err).ShouldNot(HaveOccurred())
+						}
+					}
+
+					b.Time("10 builds", func() {
+						_, err := db.GetLatestInputVersions(rootJob.Inputs)
+						Ω(err).ShouldNot(HaveOccurred())
+					})
+
+					for ; i < 100; i++ {
+						for n := 0; n < num; n++ {
+							jname := fmt.Sprintf("j%d", n)
+							rname := fmt.Sprintf("r%d", n)
+
+							jb, err := db.CreateBuild(jname)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							err = db.SaveBuildOutput(jname, jb.ID, Builds.VersionedResource{
+								Name:    rname,
+								Type:    "foo",
+								Source:  config.Source{"source": "1"},
+								Version: Builds.Version{"version": i},
+							})
+							Ω(err).ShouldNot(HaveOccurred())
+						}
+					}
+
+					b.Time("100 builds", func() {
+						_, err := db.GetLatestInputVersions(rootJob.Inputs)
+						Ω(err).ShouldNot(HaveOccurred())
+					})
+
+					for ; i < 1000; i++ {
+						for n := 0; n < num; n++ {
+							jname := fmt.Sprintf("j%d", n)
+							rname := fmt.Sprintf("r%d", n)
+
+							jb, err := db.CreateBuild(jname)
+							Ω(err).ShouldNot(HaveOccurred())
+
+							err = db.SaveBuildOutput(jname, jb.ID, Builds.VersionedResource{
+								Name:    rname,
+								Type:    "foo",
+								Source:  config.Source{"source": "1"},
+								Version: Builds.Version{"version": i},
+							})
+							Ω(err).ShouldNot(HaveOccurred())
+						}
+					}
+
+					b.Time("1000 builds", func() {
+						_, err := db.GetLatestInputVersions(rootJob.Inputs)
+						Ω(err).ShouldNot(HaveOccurred())
+					})
+				}, 1)
+			})
+		}
+	})
+
 	Describe("saving build inputs", func() {
 		buildMetadata := []Builds.MetadataField{
 			{
