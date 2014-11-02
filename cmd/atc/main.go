@@ -21,6 +21,7 @@ import (
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/tedsuo/rata"
+	"github.com/vito/pidfile"
 
 	"github.com/concourse/atc/api"
 	"github.com/concourse/atc/auth"
@@ -34,6 +35,12 @@ import (
 	"github.com/concourse/atc/scheduler/factory"
 	"github.com/concourse/atc/web"
 	"github.com/concourse/turbine"
+)
+
+var pidfilePath = flag.String(
+	"pidfile",
+	"",
+	"path to a file to write the pid to once started",
 )
 
 var pipelinePath = flag.String(
@@ -290,7 +297,7 @@ func main() {
 	webListenAddr := fmt.Sprintf("%s:%d", *webListenAddress, *webListenPort)
 	debugListenAddr := fmt.Sprintf("%s:%d", *debugListenAddress, *debugListenPort)
 
-	group := grouper.NewParallel(os.Interrupt, []grouper.Member{
+	atc := grouper.NewParallel(os.Interrupt, []grouper.Member{
 		{"web", http_server.New(webListenAddr, publicHandler)},
 
 		{"debug", http_server.New(debugListenAddr, http.DefaultServeMux)},
@@ -330,7 +337,14 @@ func main() {
 		}},
 	})
 
-	running := ifrit.Envoke(sigmon.New(group))
+	if *pidfilePath != "" {
+		atc = grouper.NewOrdered(os.Interrupt, []grouper.Member{
+			{"atc", atc},
+			{"pidfile", &pidfile.Runner{Filename: *pidfilePath}},
+		})
+	}
+
+	running := ifrit.Envoke(sigmon.New(atc))
 
 	logger.Info("listening", lager.Data{
 		"web":   webListenAddr,
