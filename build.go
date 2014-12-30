@@ -21,7 +21,8 @@ const (
 type BuildPlan struct {
 	Privileged bool `json:"privileged"`
 
-	Config BuildConfig `json:"config"`
+	Config     *BuildConfig `json:"config"`
+	ConfigPath string       `json:"config_path"`
 
 	Inputs  []InputPlan  `json:"inputs"`
 	Outputs []OutputPlan `json:"outputs"`
@@ -63,7 +64,7 @@ type InputPlan struct {
 	// arbitrary config for input
 	Params Params `json:"params,omitempty"`
 
-	// path to build configuration provided by this input
+	// XXX turbine compat.
 	ConfigPath string `json:"config_path"`
 }
 
