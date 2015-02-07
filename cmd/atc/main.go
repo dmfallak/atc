@@ -24,6 +24,7 @@ import (
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/vito/clock"
+	"github.com/xoebus/zest"
 
 	"github.com/concourse/atc"
 	"github.com/concourse/atc/api"
@@ -182,6 +183,9 @@ func main() {
 
 	logger := lager.NewLogger("atc")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
+
+	yellerSink := zest.NewYellerSink("API_KEY", "ENVIRONMENT")
+	logger.RegisterSink(yellerSink)
 
 	var err error
 
@@ -396,8 +400,10 @@ func main() {
 	err = <-running.Wait()
 	if err != nil {
 		logger.Error("exited-with-failure", err)
+		yellerSink.Wait()
 		os.Exit(1)
 	}
+	yellerSink.Wait()
 }
 
 func fatal(err error) {
