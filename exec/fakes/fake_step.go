@@ -2,51 +2,124 @@
 package fakes
 
 import (
+	"os"
 	"sync"
 
 	"github.com/concourse/atc/exec"
 )
 
 type FakeStep struct {
-	UsingStub        func(exec.ArtifactSource) exec.ArtifactSource
-	usingMutex       sync.RWMutex
-	usingArgsForCall []struct {
-		arg1 exec.ArtifactSource
+	RunStub        func(signals <-chan os.Signal, ready chan<- struct{}) error
+	runMutex       sync.RWMutex
+	runArgsForCall []struct {
+		signals <-chan os.Signal
+		ready   chan<- struct{}
 	}
-	usingReturns struct {
-		result1 exec.ArtifactSource
+	runReturns struct {
+		result1 error
+	}
+	ReleaseStub        func() error
+	releaseMutex       sync.RWMutex
+	releaseArgsForCall []struct{}
+	releaseReturns struct {
+		result1 error
+	}
+	ResultStub        func(interface{}) bool
+	resultMutex       sync.RWMutex
+	resultArgsForCall []struct {
+		arg1 interface{}
+	}
+	resultReturns struct {
+		result1 bool
 	}
 }
 
-func (fake *FakeStep) Using(arg1 exec.ArtifactSource) exec.ArtifactSource {
-	fake.usingMutex.Lock()
-	fake.usingArgsForCall = append(fake.usingArgsForCall, struct {
-		arg1 exec.ArtifactSource
-	}{arg1})
-	fake.usingMutex.Unlock()
-	if fake.UsingStub != nil {
-		return fake.UsingStub(arg1)
+func (fake *FakeStep) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+	fake.runMutex.Lock()
+	fake.runArgsForCall = append(fake.runArgsForCall, struct {
+		signals <-chan os.Signal
+		ready   chan<- struct{}
+	}{signals, ready})
+	fake.runMutex.Unlock()
+	if fake.RunStub != nil {
+		return fake.RunStub(signals, ready)
 	} else {
-		return fake.usingReturns.result1
+		return fake.runReturns.result1
 	}
 }
 
-func (fake *FakeStep) UsingCallCount() int {
-	fake.usingMutex.RLock()
-	defer fake.usingMutex.RUnlock()
-	return len(fake.usingArgsForCall)
+func (fake *FakeStep) RunCallCount() int {
+	fake.runMutex.RLock()
+	defer fake.runMutex.RUnlock()
+	return len(fake.runArgsForCall)
 }
 
-func (fake *FakeStep) UsingArgsForCall(i int) exec.ArtifactSource {
-	fake.usingMutex.RLock()
-	defer fake.usingMutex.RUnlock()
-	return fake.usingArgsForCall[i].arg1
+func (fake *FakeStep) RunArgsForCall(i int) (<-chan os.Signal, chan<- struct{}) {
+	fake.runMutex.RLock()
+	defer fake.runMutex.RUnlock()
+	return fake.runArgsForCall[i].signals, fake.runArgsForCall[i].ready
 }
 
-func (fake *FakeStep) UsingReturns(result1 exec.ArtifactSource) {
-	fake.UsingStub = nil
-	fake.usingReturns = struct {
-		result1 exec.ArtifactSource
+func (fake *FakeStep) RunReturns(result1 error) {
+	fake.RunStub = nil
+	fake.runReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeStep) Release() error {
+	fake.releaseMutex.Lock()
+	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct{}{})
+	fake.releaseMutex.Unlock()
+	if fake.ReleaseStub != nil {
+		return fake.ReleaseStub()
+	} else {
+		return fake.releaseReturns.result1
+	}
+}
+
+func (fake *FakeStep) ReleaseCallCount() int {
+	fake.releaseMutex.RLock()
+	defer fake.releaseMutex.RUnlock()
+	return len(fake.releaseArgsForCall)
+}
+
+func (fake *FakeStep) ReleaseReturns(result1 error) {
+	fake.ReleaseStub = nil
+	fake.releaseReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeStep) Result(arg1 interface{}) bool {
+	fake.resultMutex.Lock()
+	fake.resultArgsForCall = append(fake.resultArgsForCall, struct {
+		arg1 interface{}
+	}{arg1})
+	fake.resultMutex.Unlock()
+	if fake.ResultStub != nil {
+		return fake.ResultStub(arg1)
+	} else {
+		return fake.resultReturns.result1
+	}
+}
+
+func (fake *FakeStep) ResultCallCount() int {
+	fake.resultMutex.RLock()
+	defer fake.resultMutex.RUnlock()
+	return len(fake.resultArgsForCall)
+}
+
+func (fake *FakeStep) ResultArgsForCall(i int) interface{} {
+	fake.resultMutex.RLock()
+	defer fake.resultMutex.RUnlock()
+	return fake.resultArgsForCall[i].arg1
+}
+
+func (fake *FakeStep) ResultReturns(result1 bool) {
+	fake.ResultStub = nil
+	fake.resultReturns = struct {
+		result1 bool
 	}{result1}
 }
 

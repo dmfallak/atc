@@ -29,11 +29,11 @@ var _ = Describe("ConfigSource", func() {
 			},
 		}
 
-		fakeArtifactSource *fakes.FakeArtifactSource
+		fakeSourceRepository *fakes.FakeSourceRepository
 	)
 
 	BeforeEach(func() {
-		fakeArtifactSource = new(fakes.FakeArtifactSource)
+		fakeSourceRepository = new(fakes.FakeSourceRepository)
 	})
 
 	Describe("StaticConfigSource", func() {
@@ -49,7 +49,7 @@ var _ = Describe("ConfigSource", func() {
 		})
 
 		JustBeforeEach(func() {
-			fetchedConfig, fetchErr = configSource.FetchConfig(fakeArtifactSource)
+			fetchedConfig, fetchErr = configSource.FetchConfig(fakeSourceRepository)
 		})
 
 		It("succeeds", func() {
@@ -63,7 +63,7 @@ var _ = Describe("ConfigSource", func() {
 
 	Describe("FileConfigSource", func() {
 		var (
-			configSource TaskConfigSource
+			configSource FileConfigSource
 
 			fetchedConfig atc.TaskConfig
 			fetchErr      error
@@ -74,83 +74,116 @@ var _ = Describe("ConfigSource", func() {
 		})
 
 		JustBeforeEach(func() {
-			fetchedConfig, fetchErr = configSource.FetchConfig(fakeArtifactSource)
+			fetchedConfig, fetchErr = configSource.FetchConfig(fakeSourceRepository)
 		})
 
-		Context("when the artifact source provides a proper file", func() {
-			var streamedOut *gbytes.Buffer
-
+		Context("when the path does not indicate an artifact source", func() {
 			BeforeEach(func() {
-				marshalled, err := candiedyaml.Marshal(someConfig)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				streamedOut = gbytes.BufferWithBytes(marshalled)
-				fakeArtifactSource.StreamFileReturns(streamedOut, nil)
-			})
-
-			It("fetches the file via the correct path", func() {
-				Ω(fakeArtifactSource.StreamFileArgsForCall(0)).Should(Equal("some/build.yml"))
-			})
-
-			It("succeeds", func() {
-				Ω(fetchErr).ShouldNot(HaveOccurred())
-			})
-
-			It("returns the unmarshalled config", func() {
-				Ω(fetchedConfig).Should(Equal(someConfig))
-			})
-
-			It("closes the stream", func() {
-				Ω(streamedOut.Closed()).Should(BeTrue())
-			})
-		})
-
-		Context("when the artifact source provides an invalid configuration", func() {
-			var streamedOut *gbytes.Buffer
-
-			BeforeEach(func() {
-				invalidConfig := someConfig
-				invalidConfig.Platform = ""
-				invalidConfig.Run = atc.TaskRunConfig{}
-
-				marshalled, err := candiedyaml.Marshal(invalidConfig)
-				Ω(err).ShouldNot(HaveOccurred())
-
-				streamedOut = gbytes.BufferWithBytes(marshalled)
-				fakeArtifactSource.StreamFileReturns(streamedOut, nil)
+				configSource.Path = "foo-bar.yml"
 			})
 
 			It("returns an error", func() {
-				Ω(fetchErr).Should(HaveOccurred())
+				Ω(fetchErr).Should(Equal(UnspecifiedArtifactSourceError{"foo-bar.yml"}))
 			})
 		})
 
-		Context("when the artifact source provides a malformed file", func() {
-			var streamedOut *gbytes.Buffer
+		Context("when the file's artifact source can be found in the repository", func() {
+			var fakeArtifactSource *fakes.FakeArtifactSource
 
 			BeforeEach(func() {
-				streamedOut = gbytes.BufferWithBytes([]byte("bogus"))
-				fakeArtifactSource.StreamFileReturns(streamedOut, nil)
+				fakeArtifactSource = new(fakes.FakeArtifactSource)
+				fakeSourceRepository.SourceForReturns(fakeArtifactSource, true)
 			})
 
-			It("fails", func() {
-				Ω(fetchErr).Should(HaveOccurred())
+			Context("when the artifact source provides a proper file", func() {
+				var streamedOut *gbytes.Buffer
+
+				BeforeEach(func() {
+					marshalled, err := candiedyaml.Marshal(someConfig)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					streamedOut = gbytes.BufferWithBytes(marshalled)
+					fakeArtifactSource.StreamFileReturns(streamedOut, nil)
+				})
+
+				It("finds the artifact source via the first path segment", func() {
+					Ω(fakeSourceRepository.SourceForArgsForCall(0)).Should(Equal(SourceName("some")))
+				})
+
+				It("fetches the file via the correct path", func() {
+					Ω(fakeArtifactSource.StreamFileArgsForCall(0)).Should(Equal("build.yml"))
+				})
+
+				It("succeeds", func() {
+					Ω(fetchErr).ShouldNot(HaveOccurred())
+				})
+
+				It("returns the unmarshalled config", func() {
+					Ω(fetchedConfig).Should(Equal(someConfig))
+				})
+
+				It("closes the stream", func() {
+					Ω(streamedOut.Closed()).Should(BeTrue())
+				})
 			})
 
-			It("closes the stream", func() {
-				Ω(streamedOut.Closed()).Should(BeTrue())
+			Context("when the artifact source provides an invalid configuration", func() {
+				var streamedOut *gbytes.Buffer
+
+				BeforeEach(func() {
+					invalidConfig := someConfig
+					invalidConfig.Platform = ""
+					invalidConfig.Run = atc.TaskRunConfig{}
+
+					marshalled, err := candiedyaml.Marshal(invalidConfig)
+					Ω(err).ShouldNot(HaveOccurred())
+
+					streamedOut = gbytes.BufferWithBytes(marshalled)
+					fakeArtifactSource.StreamFileReturns(streamedOut, nil)
+				})
+
+				It("returns an error", func() {
+					Ω(fetchErr).Should(HaveOccurred())
+				})
+			})
+
+			Context("when the artifact source provides a malformed file", func() {
+				var streamedOut *gbytes.Buffer
+
+				BeforeEach(func() {
+					streamedOut = gbytes.BufferWithBytes([]byte("bogus"))
+					fakeArtifactSource.StreamFileReturns(streamedOut, nil)
+				})
+
+				It("fails", func() {
+					Ω(fetchErr).Should(HaveOccurred())
+				})
+
+				It("closes the stream", func() {
+					Ω(streamedOut.Closed()).Should(BeTrue())
+				})
+			})
+
+			Context("when streaming the file out fails", func() {
+				disaster := errors.New("nope")
+
+				BeforeEach(func() {
+					fakeArtifactSource.StreamFileReturns(nil, disaster)
+				})
+
+				It("returns the error", func() {
+					Ω(fetchErr).Should(HaveOccurred())
+				})
 			})
 		})
 
-		Context("when streaming the file out fails", func() {
-			disaster := errors.New("nope")
-
+		Context("when the file's artifact source cannot be found in the repository", func() {
 			BeforeEach(func() {
-				fakeArtifactSource.StreamFileReturns(nil, disaster)
+				fakeSourceRepository.SourceForReturns(nil, false)
 			})
 
-			It("returns the error", func() {
-				Ω(fetchErr).Should(HaveOccurred())
+			It("returns an UnknownArtifactSourceError", func() {
+				Ω(fetchErr).Should(Equal(UnknownArtifactSourceError{"some"}))
 			})
 		})
 	})
@@ -177,7 +210,7 @@ var _ = Describe("ConfigSource", func() {
 		})
 
 		JustBeforeEach(func() {
-			fetchedConfig, fetchErr = configSource.FetchConfig(fakeArtifactSource)
+			fetchedConfig, fetchErr = configSource.FetchConfig(fakeSourceRepository)
 		})
 
 		Context("when fetching via A succeeds", func() {
@@ -200,8 +233,8 @@ var _ = Describe("ConfigSource", func() {
 				})
 
 				It("fetches via the input source", func() {
-					Ω(fakeConfigSourceA.FetchConfigArgsForCall(0)).Should(Equal(fakeArtifactSource))
-					Ω(fakeConfigSourceB.FetchConfigArgsForCall(0)).Should(Equal(fakeArtifactSource))
+					Ω(fakeConfigSourceA.FetchConfigArgsForCall(0)).Should(Equal(fakeSourceRepository))
+					Ω(fakeConfigSourceB.FetchConfigArgsForCall(0)).Should(Equal(fakeSourceRepository))
 				})
 
 				It("succeeds", func() {

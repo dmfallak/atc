@@ -16,20 +16,22 @@ type resourceStep struct {
 	Tracker resource.Tracker
 	Type    resource.ResourceType
 
-	Action func(resource.Resource, ArtifactSource) resource.VersionedSource
+	Action func(resource.Resource, interface{}) resource.VersionedSource
 
-	ArtifactSource ArtifactSource
+	PreviousStep Step
+	Repository   SourceRepository
 
 	Resource        resource.Resource
 	VersionedSource resource.VersionedSource
 }
 
-func (step resourceStep) Using(source ArtifactSource) ArtifactSource {
-	step.ArtifactSource = source
+func (step resourceStep) Using(prev Step, repo SourceRepository) Step {
+	step.PreviousStep = prev
+	step.Repository = repo
 
 	return failureReporter{
-		ArtifactSource: &step,
-		ReportFailure:  step.Delegate.Failed,
+		Step:          &step,
+		ReportFailure: step.Delegate.Failed,
 	}
 }
 
@@ -40,7 +42,7 @@ func (ras *resourceStep) Run(signals <-chan os.Signal, ready chan<- struct{}) er
 	}
 
 	ras.Resource = resource
-	ras.VersionedSource = ras.Action(resource, ras.ArtifactSource)
+	ras.VersionedSource = ras.Action(resource, ras.PreviousStep)
 
 	err = ras.VersionedSource.Run(signals, ready)
 	if err != nil {
@@ -69,7 +71,7 @@ func (ras *resourceStep) StreamTo(destination ArtifactDestination) error {
 		return err
 	}
 
-	return destination.StreamIn(".", out)
+	return destination.StreamIn(out)
 }
 
 func (ras *resourceStep) StreamFile(path string) (io.ReadCloser, error) {
@@ -110,10 +112,10 @@ type fileReadCloser struct {
 	io.Closer
 }
 
-type resourceSource struct {
-	ArtifactSource
-}
-
-func (source resourceSource) StreamTo(dest resource.ArtifactDestination) error {
-	return source.ArtifactSource.StreamTo(resource.ArtifactDestination(dest))
-}
+// type resourceSource struct {
+// 	ArtifactSource
+// }
+//
+// func (source resourceSource) StreamTo(dest resource.ArtifactDestination) error {
+// 	return source.ArtifactSource.StreamTo(resource.ArtifactDestination(dest))
+// }

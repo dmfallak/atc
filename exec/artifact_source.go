@@ -11,21 +11,37 @@ import (
 
 var ErrFileNotFound = errors.New("file not found")
 
-//go:generate counterfeiter . ArtifactSource
-type ArtifactSource interface {
+//go:generate counterfeiter . Step
+
+type Step interface {
 	ifrit.Runner
 
+	Release() error
+	Result(interface{}) bool
+
+	ArtifactSource
+}
+
+type SourceName string
+
+//go:generate counterfeiter . SourceRepository
+
+type SourceRepository interface {
+	RegisterSource(SourceName, ArtifactSource)
+	SourceFor(SourceName) (ArtifactSource, bool)
+}
+
+//go:generate counterfeiter . ArtifactSource
+
+type ArtifactSource interface {
 	StreamTo(ArtifactDestination) error
 	StreamFile(path string) (io.ReadCloser, error)
-
-	Release() error
-
-	Result(interface{}) bool
 }
 
 //go:generate counterfeiter . ArtifactDestination
+
 type ArtifactDestination interface {
-	StreamIn(string, io.Reader) error
+	StreamIn(io.Reader) error
 }
 
 type Success bool
@@ -37,22 +53,14 @@ type VersionInfo struct {
 	Metadata []atc.MetadataField
 }
 
-type NoopArtifactSource struct{}
+type NoopStep struct{}
 
-func (NoopArtifactSource) Run(<-chan os.Signal, chan<- struct{}) error {
+func (NoopStep) Run(<-chan os.Signal, chan<- struct{}) error {
 	return nil
 }
 
-func (NoopArtifactSource) Release() error { return nil }
+func (NoopStep) Release() error { return nil }
 
-func (NoopArtifactSource) StreamTo(ArtifactDestination) error {
-	return nil
-}
-
-func (NoopArtifactSource) StreamFile(string) (io.ReadCloser, error) {
-	return nil, ErrFileNotFound
-}
-
-func (NoopArtifactSource) Result(interface{}) bool {
+func (NoopStep) Result(interface{}) bool {
 	return false
 }

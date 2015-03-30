@@ -9,26 +9,24 @@ import (
 )
 
 type FakeArtifactDestination struct {
-	StreamInStub        func(string, io.Reader) error
+	StreamInStub        func(io.Reader) error
 	streamInMutex       sync.RWMutex
 	streamInArgsForCall []struct {
-		arg1 string
-		arg2 io.Reader
+		arg1 io.Reader
 	}
 	streamInReturns struct {
 		result1 error
 	}
 }
 
-func (fake *FakeArtifactDestination) StreamIn(arg1 string, arg2 io.Reader) error {
+func (fake *FakeArtifactDestination) StreamIn(arg1 io.Reader) error {
 	fake.streamInMutex.Lock()
 	fake.streamInArgsForCall = append(fake.streamInArgsForCall, struct {
-		arg1 string
-		arg2 io.Reader
-	}{arg1, arg2})
+		arg1 io.Reader
+	}{arg1})
 	fake.streamInMutex.Unlock()
 	if fake.StreamInStub != nil {
-		return fake.StreamInStub(arg1, arg2)
+		return fake.StreamInStub(arg1)
 	} else {
 		return fake.streamInReturns.result1
 	}
@@ -40,10 +38,10 @@ func (fake *FakeArtifactDestination) StreamInCallCount() int {
 	return len(fake.streamInArgsForCall)
 }
 
-func (fake *FakeArtifactDestination) StreamInArgsForCall(i int) (string, io.Reader) {
+func (fake *FakeArtifactDestination) StreamInArgsForCall(i int) io.Reader {
 	fake.streamInMutex.RLock()
 	defer fake.streamInMutex.RUnlock()
-	return fake.streamInArgsForCall[i].arg1, fake.streamInArgsForCall[i].arg2
+	return fake.streamInArgsForCall[i].arg1
 }
 
 func (fake *FakeArtifactDestination) StreamInReturns(result1 error) {
