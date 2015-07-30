@@ -28,6 +28,8 @@ type PipelineDB interface {
 
 	GetResource(resourceName string) (SavedResource, error)
 	GetResourceHistory(resource string) ([]*VersionHistory, error)
+	GetResourceHistoryCursor(resource string, startingID int, searchUpwards bool, numResults int) ([]*VersionHistory, bool, error)
+	GetResourceHistoryMaxID(resource string) (int, error)
 	PauseResource(resourceName string) error
 	UnpauseResource(resourceName string) error
 
@@ -390,6 +392,14 @@ func (pdb *pipelineDB) GetResourceHistory(resource string) ([]*VersionHistory, e
 	}
 
 	return hs, nil
+}
+
+func (pdb *pipelineDB) GetResourceHistoryCursor(resourceName string, startingID int, searchUpwards bool, numResults int) ([]*VersionHistory, bool, error) {
+	return []*VersionHistory{}, false, nil
+}
+
+func (pdb *pipelineDB) GetResourceHistoryMaxID(resourceName string) (int, error) {
+	return 0, nil
 }
 
 func (pdb *pipelineDB) getResource(tx *sql.Tx, name string) (SavedResource, error) {

@@ -35,7 +35,12 @@
   </div>
 </div>
 
-<ul class="list list-collapsable list-enableDisable mhm">
+{{if .HasPagination}}
+<div class="pagination">
+</div>
+{{end}}
+
+<ul class="list list-collapsable list-enableDisable mhm resource-versions">
   {{$pipelineName := .PipelineName}}
   {{range .History}}
     <li class="list-collapsable-item clearfix {{if .VersionedResource.Enabled}}enabled{{else}}disabled{{end}}">
