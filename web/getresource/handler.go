@@ -56,7 +56,7 @@ type ResourcesDB interface {
 	GetConfig() (atc.Config, db.ConfigVersion, error)
 	GetResource(string) (db.SavedResource, error)
 	GetResourceHistoryCursor(string, int, bool, int) ([]*db.VersionHistory, bool, error)
-	GetResourceHistoryMaxID(string) (int, error)
+	GetResourceHistoryMaxID(int) (int, error)
 }
 
 var ErrResourceConfigNotFound = errors.New("could not find resource")
@@ -72,7 +72,12 @@ func FetchTemplateData(resourceDB ResourcesDB, authenticated bool, resourceName 
 		return TemplateData{}, ErrResourceConfigNotFound
 	}
 
-	maxID, err := resourceDB.GetResourceHistoryMaxID(configResource.Name)
+	dbResource, err := resourceDB.GetResource(configResource.Name)
+	if err != nil {
+		return TemplateData{}, err
+	}
+
+	maxID, err := resourceDB.GetResourceHistoryMaxID(dbResource.ID)
 	if err != nil {
 		return TemplateData{}, err
 	}
@@ -88,10 +93,7 @@ func FetchTemplateData(resourceDB ResourcesDB, authenticated bool, resourceName 
 		return TemplateData{}, err
 	}
 
-	dbResource, err := resourceDB.GetResource(configResource.Name)
-	if err != nil {
-		return TemplateData{}, err
-	}
+	resource := present.Resource(configResource, config.Groups, dbResource, authenticated)
 
 	maxIDFromResults := maxID
 	var olderStartID int
@@ -108,8 +110,6 @@ func FetchTemplateData(resourceDB ResourcesDB, authenticated bool, resourceName 
 	hasOlder := searchUpwards || hasNext
 
 	hasPagination := hasOlder || hasNewer
-
-	resource := present.Resource(configResource, config.Groups, dbResource, authenticated)
 
 	templateData := TemplateData{
 		Resource:      resource,

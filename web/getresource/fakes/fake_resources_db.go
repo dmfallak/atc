@@ -46,10 +46,10 @@ type FakeResourcesDB struct {
 		result2 bool
 		result3 error
 	}
-	GetResourceHistoryMaxIDStub        func(string) (int, error)
+	GetResourceHistoryMaxIDStub        func(int) (int, error)
 	getResourceHistoryMaxIDMutex       sync.RWMutex
 	getResourceHistoryMaxIDArgsForCall []struct {
-		arg1 string
+		arg1 int
 	}
 	getResourceHistoryMaxIDReturns struct {
 		result1 int
@@ -177,10 +177,10 @@ func (fake *FakeResourcesDB) GetResourceHistoryCursorReturns(result1 []*db.Versi
 	}{result1, result2, result3}
 }
 
-func (fake *FakeResourcesDB) GetResourceHistoryMaxID(arg1 string) (int, error) {
+func (fake *FakeResourcesDB) GetResourceHistoryMaxID(arg1 int) (int, error) {
 	fake.getResourceHistoryMaxIDMutex.Lock()
 	fake.getResourceHistoryMaxIDArgsForCall = append(fake.getResourceHistoryMaxIDArgsForCall, struct {
-		arg1 string
+		arg1 int
 	}{arg1})
 	fake.getResourceHistoryMaxIDMutex.Unlock()
 	if fake.GetResourceHistoryMaxIDStub != nil {
@@ -196,7 +196,7 @@ func (fake *FakeResourcesDB) GetResourceHistoryMaxIDCallCount() int {
 	return len(fake.getResourceHistoryMaxIDArgsForCall)
 }
 
-func (fake *FakeResourcesDB) GetResourceHistoryMaxIDArgsForCall(i int) string {
+func (fake *FakeResourcesDB) GetResourceHistoryMaxIDArgsForCall(i int) int {
 	fake.getResourceHistoryMaxIDMutex.RLock()
 	defer fake.getResourceHistoryMaxIDMutex.RUnlock()
 	return fake.getResourceHistoryMaxIDArgsForCall[i].arg1

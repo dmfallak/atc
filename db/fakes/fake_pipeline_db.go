@@ -87,10 +87,10 @@ type FakePipelineDB struct {
 		result2 bool
 		result3 error
 	}
-	GetResourceHistoryMaxIDStub        func(resource string) (int, error)
+	GetResourceHistoryMaxIDStub        func(resourceID int) (int, error)
 	getResourceHistoryMaxIDMutex       sync.RWMutex
 	getResourceHistoryMaxIDArgsForCall []struct {
-		resource string
+		resourceID int
 	}
 	getResourceHistoryMaxIDReturns struct {
 		result1 int
@@ -618,14 +618,14 @@ func (fake *FakePipelineDB) GetResourceHistoryCursorReturns(result1 []*db.Versio
 	}{result1, result2, result3}
 }
 
-func (fake *FakePipelineDB) GetResourceHistoryMaxID(resource string) (int, error) {
+func (fake *FakePipelineDB) GetResourceHistoryMaxID(resourceID int) (int, error) {
 	fake.getResourceHistoryMaxIDMutex.Lock()
 	fake.getResourceHistoryMaxIDArgsForCall = append(fake.getResourceHistoryMaxIDArgsForCall, struct {
-		resource string
-	}{resource})
+		resourceID int
+	}{resourceID})
 	fake.getResourceHistoryMaxIDMutex.Unlock()
 	if fake.GetResourceHistoryMaxIDStub != nil {
-		return fake.GetResourceHistoryMaxIDStub(resource)
+		return fake.GetResourceHistoryMaxIDStub(resourceID)
 	} else {
 		return fake.getResourceHistoryMaxIDReturns.result1, fake.getResourceHistoryMaxIDReturns.result2
 	}
@@ -637,10 +637,10 @@ func (fake *FakePipelineDB) GetResourceHistoryMaxIDCallCount() int {
 	return len(fake.getResourceHistoryMaxIDArgsForCall)
 }
 
-func (fake *FakePipelineDB) GetResourceHistoryMaxIDArgsForCall(i int) string {
+func (fake *FakePipelineDB) GetResourceHistoryMaxIDArgsForCall(i int) int {
 	fake.getResourceHistoryMaxIDMutex.RLock()
 	defer fake.getResourceHistoryMaxIDMutex.RUnlock()
-	return fake.getResourceHistoryMaxIDArgsForCall[i].resource
+	return fake.getResourceHistoryMaxIDArgsForCall[i].resourceID
 }
 
 func (fake *FakePipelineDB) GetResourceHistoryMaxIDReturns(result1 int, result2 error) {
