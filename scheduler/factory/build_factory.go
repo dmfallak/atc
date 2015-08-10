@@ -145,8 +145,13 @@ func populatePlanLocations(planConfig *atc.PlanConfig, location *atc.Location) u
 		stepCount = stepCount + 1
 
 	case planConfig.Do != nil:
+		// TODO: Do we actually need to increment these two here? See aggregate location.
+		serialGroup := location.ID + 1
+		stepCount += 1
+
 		children := *planConfig.Do
-		parentID = location.ID + 1
+		parentID = serialGroup
+		// stepCount += 1
 		for i := 0; i < len(children); i++ {
 			child := children[i]
 			childLocation := &atc.Location{
@@ -154,7 +159,10 @@ func populatePlanLocations(planConfig *atc.PlanConfig, location *atc.Location) u
 				ParentID:      location.ParentID,
 				ParallelGroup: 0,
 				Hook:          location.Hook,
+				SerialGroup:   serialGroup,
 			}
+
+			// planConfig.Location = location
 
 			stepCount = stepCount + populatePlanLocations(&child, childLocation)
 			children[i] = child
@@ -170,6 +178,7 @@ func populatePlanLocations(planConfig *atc.PlanConfig, location *atc.Location) u
 		stepCount = stepCount + populatePlanLocations(planConfig.Try, childLocation)
 
 	case planConfig.Aggregate != nil:
+		// TODO: Do we actually need to increment these two here? See do location.
 		parallelGroup := location.ID + 1
 		stepCount += 1
 
@@ -184,6 +193,7 @@ func populatePlanLocations(planConfig *atc.PlanConfig, location *atc.Location) u
 				ID:            location.ID + stepCount + 1,
 				ParentID:      location.ParentID,
 				ParallelGroup: parallelGroup,
+				// TODO: handle serial group here
 			}
 
 			if child.Aggregate == nil {
