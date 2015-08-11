@@ -29,8 +29,10 @@ var LogLine = React.createClass({
       classString += "error ";
     }
 
+    var processedText = this.processMarkdown(sequence.text);
+
     return (
-      <span key={key} className={classString}>{sequence.text}</span>
+      <span key={key} className={classString}>{processedText}</span>
     )
   },
 
@@ -39,6 +41,16 @@ var LogLine = React.createClass({
       <div>{this.props.line.toJS().map(this.renderSequence)}</div>
     )
   },
+
+  processMarkdown: function(text) {
+    var imageRegex = /!\[(.*)\]\((.*)\)/;
+
+    while (imageRegex.test(text)) {
+      text = text.replace(imageRegex, "<img alt=\"$1\" src=\"$2\"/>");
+    }
+
+    return text;
+  }
 });
 
 var LogsLineBatch = React.createClass({
