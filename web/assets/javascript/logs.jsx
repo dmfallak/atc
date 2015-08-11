@@ -29,13 +29,11 @@ var LogLine = React.createClass({
       classString += "error ";
     }
 
-    var processedText = this.processMarkdown(sequence.text);
-
     var imageRegex = /!\[(.*)\]\((.*)\)/;
 
-    if (imageRegex.test(text)) {
-      var altText = text.replace(imageRegex, "$1");
-      var imgUrl = text.replace(imageRegex, "$2");
+    if (imageRegex.test(sequence.text)) {
+      var altText = sequence.text.replace(imageRegex, "$1");
+      var imgUrl = sequence.text.replace(imageRegex, "$2");
 
       return (
         <img alt={altText} src={imgUrl}/>
@@ -43,7 +41,7 @@ var LogLine = React.createClass({
     }
 
     return (
-      <span key={key} className={classString}>{processedText}</span>
+      <span key={key} className={classString}>{sequence.text}</span>
     )
   },
 
