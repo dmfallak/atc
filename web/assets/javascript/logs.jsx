@@ -38,7 +38,7 @@ var LogLine = React.createClass({
       var imgUrl = text.replace(imageRegex, "$2");
 
       return (
-        <img alt={altText} src={imgUrl}/>;
+        <img alt={altText} src={imgUrl}/>
       )
     }
 
